@@ -1,0 +1,8 @@
+brave-bin
+libudev0-shim
+libudev0-shim-debug
+spotify
+visual-studio-code-bin
+yay
+yay-debug
+zen-browser-bin
