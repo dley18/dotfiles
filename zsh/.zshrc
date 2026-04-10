@@ -64,3 +64,5 @@ eval "$(fzf --zsh)"
 source /usr/share/nvm/init-nvm.sh
 
 fastfetch --pipe false
+
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
