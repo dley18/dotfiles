@@ -58,10 +58,12 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 
 alias ls='ls --color'
-alias nvidia-run='__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia'
+alias uvr="uv run"
+
 eval "$(fzf --zsh)"
 
-source /usr/share/nvm/init-nvm.sh
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
 
 fastfetch --pipe false
 
