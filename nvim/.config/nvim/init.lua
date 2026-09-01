@@ -258,6 +258,21 @@ require("lazy").setup({
         end,
     },
 
+    {
+        "danymat/neogen",
+        dependencies = {
+            "nvim-treesitter/nvim-treesitter",
+        },
+
+        config = function()
+            require("neogen").setup({})
+
+            vim.keymap.set("n", "<leader>nf", function()
+                require("neogen").generate()
+            end, { desc = "Generate JSDoc/Docs" })
+        end,
+    },
+
     { "editorconfig/editorconfig-vim" },
 
     {
@@ -658,6 +673,8 @@ require("lazy").setup({
                 --
                 -- But for many setups, the LSP (`ts_ls`) will work just fine
                 ts_ls = {},
+
+                zls = {},
 
                 eslint = {},
 
