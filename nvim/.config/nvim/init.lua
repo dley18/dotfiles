@@ -3,7 +3,7 @@
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
-vim.keymap.set("n", "<leader>pv", vim.cmd.Ex)
+vim.keymap.set("n", "<leader>pv", "<cmd>Oil<CR>", { desc = "Open parent directory" })
 -- Remaps
 --
 -- Stay in indent mode when shifting blocks
@@ -42,6 +42,9 @@ end, { desc = "Source init.lua" })
 -- Navigate quickfix list (essential once you use LSP references)
 vim.keymap.set("n", "<C-k>", "<cmd>cnext<CR>zz")
 vim.keymap.set("n", "<C-j>", "<cmd>cprev<CR>zz")
+
+-- View Linter Error
+vim.keymap.set("n", "gl", vim.diagnostic.open_float, { desc = "Show line diagnostics" })
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = true
 
@@ -49,6 +52,9 @@ vim.g.have_nerd_font = true
 -- See `:help vim.o`
 -- NOTE: You can change these options as you wish!
 --  For more options, you can see `:help option-list`
+
+-- Cursor Config
+-- vim.opt.guicursor = ""
 
 -- Make line numbers default
 vim.o.number = true
@@ -117,6 +123,13 @@ vim.o.scrolloff = 8
 -- instead raise a dialog asking if you wish to save the current file(s)
 -- See `:help 'confirm'`
 vim.o.confirm = true
+
+-- NETRW CONFIG
+-- vim.g.netrw_banner = 0 -- hide help banner
+-- vim.g.netrw_liststyle = 3     -- tree view
+-- vim.g.netrw_browse_split = 0 -- Reuse window
+-- vim.g.netrw_sizestyle = "H" -- Human-friendly file sizes
+-- vim.g.netrw_sort_sequence = [[\/$,*.o,*.obj,*.bak,*.swp,*.zip]] -- Show files naturally
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -218,44 +231,57 @@ require("lazy").setup({
     --
 
     {
+        "numToStr/Comment.nvim",
+        opts = {},
+    },
+
+    {
         "ThePrimeagen/harpoon",
-        branch = "harpoon2",
         dependencies = { "nvim-lua/plenary.nvim" },
         config = function()
-            local harpoon = require("harpoon")
+            require("harpoon").setup({
+                global_settings = {
+                    save_on_toggle = false,
+                    save_on_change = true,
+                },
+            })
 
-            -- REQUIRED
-            harpoon:setup()
-            -- REQUIRED
+            local mark = require("harpoon.mark")
+            local ui = require("harpoon.ui")
 
-            vim.keymap.set("n", "<leader>a", function()
-                harpoon:list():add()
-            end)
-            vim.keymap.set("n", "<C-h>", function()
-                harpoon.ui:toggle_quick_menu(harpoon:list())
-            end)
+            vim.keymap.set("n", "<leader>a", mark.add_file, { desc = "Harpoon add file" })
+            vim.keymap.set("n", "<C-h>", ui.toggle_quick_menu, { desc = "Harpoon menu" })
 
-            vim.keymap.set("n", "<C-1>", function()
-                harpoon:list():select(1)
+            vim.keymap.set("n", "<leader>1", function()
+                ui.nav_file(1)
             end)
-            vim.keymap.set("n", "<C-2>", function()
-                harpoon:list():select(2)
+            vim.keymap.set("n", "<leader>2", function()
+                ui.nav_file(2)
             end)
-            vim.keymap.set("n", "<C-3>", function()
-                harpoon:list():select(3)
+            vim.keymap.set("n", "<leader>3", function()
+                ui.nav_file(3)
             end)
-            vim.keymap.set("n", "<C-4>", function()
-                harpoon:list():select(4)
+            vim.keymap.set("n", "<leader>4", function()
+                ui.nav_file(4)
             end)
 
-            -- Toggle previous & next buffers stored within Harpoon list
-            vim.keymap.set("n", "<C-S-P>", function()
-                harpoon:list():prev()
-            end)
-            vim.keymap.set("n", "<C-S-N>", function()
-                harpoon:list():next()
-            end)
+            vim.keymap.set("n", "<leader>hp", ui.nav_prev, { desc = "Harpoon prev" })
+            vim.keymap.set("n", "<leader>hn", ui.nav_next, { desc = "Harpoon next" })
         end,
+    },
+
+    {
+      "stevearc/oil.nvim",
+      lazy=false,
+      dependencies = { "nvim-tree/nvim-web-devicons" },
+      opts = {
+        default_file_explorer = true, -- replaces netrw
+        columns = { "icon" },
+        view_options = { show_hidden = true },
+      },
+      keys = {
+        { "-", "<cmd>Oil<cr>", desc = "Open parent directory" },
+      },
     },
 
     {
@@ -269,7 +295,7 @@ require("lazy").setup({
 
             vim.keymap.set("n", "<leader>nf", function()
                 require("neogen").generate()
-            end, { desc = "Generate JSDoc/Docs" })
+            end, { desc = "Generate Function Annotation" })
         end,
     },
 
@@ -295,33 +321,86 @@ require("lazy").setup({
         config = true,
     },
 
-    -- Alternatively, use `config = function() ... end` for full control over the configuration.
-    -- If you prefer to call `setup` explicitly, use:
-    --    {
-    --        'lewis6991/gitsigns.nvim',
-    --        config = function()
-    --            require('gitsigns').setup({
-    --                -- Your gitsigns configuration here
-    --            })
-    --        end,
-    --    }
-    --
-    -- Here is a more advanced example where we pass configuration
-    -- options to `gitsigns.nvim`.
-    --
-    -- See `:help gitsigns` to understand what the configuration keys do
-    { -- Adds git related signs to the gutter, as well as utilities for managing changes
+    {
         "lewis6991/gitsigns.nvim",
-        ---@module 'gitsigns'
-        ---@type Gitsigns.Config
-        ---@diagnostic disable-next-line: missing-fields
+        event = { "BufReadPre", "BufNewFile" },
         opts = {
             signs = {
-                add = { text = "+" }, ---@diagnostic disable-line: missing-fields
-                change = { text = "~" }, ---@diagnostic disable-line: missing-fields
-                delete = { text = "_" }, ---@diagnostic disable-line: missing-fields
-                topdelete = { text = "‾" }, ---@diagnostic disable-line: missing-fields
-                changedelete = { text = "~" }, ---@diagnostic disable-line: missing-fields
+                add = { text = "│" },
+                change = { text = "│" },
+                delete = { text = "_" },
+                topdelete = { text = "‾" },
+                changedelete = { text = "~" },
+            },
+
+            current_line_blame = false,
+
+            on_attach = function(bufnr)
+                local gs = package.loaded.gitsigns
+
+                local function map(mode, lhs, rhs, desc)
+                    vim.keymap.set(mode, lhs, rhs, {
+                        buffer = bufnr,
+                        desc = desc,
+                    })
+                end
+
+                -- Navigation
+                map("n", "]h", gs.next_hunk, "Next Git Hunk")
+                map("n", "[h", gs.prev_hunk, "Previous Git Hunk")
+
+                -- Hunk actions
+                map("n", "<leader>hs", gs.stage_hunk, "Stage Hunk")
+                map("n", "<leader>hr", gs.reset_hunk, "Reset Hunk")
+                map("v", "<leader>hs", function()
+                    gs.stage_hunk({ vim.fn.line("."), vim.fn.line("v") })
+                end, "Stage Selected Hunk")
+
+                -- Preview
+                map("n", "<leader>hp", gs.preview_hunk, "Preview Hunk")
+
+                -- Blame
+                map("n", "<leader>hb", gs.blame_line, "Blame Line")
+                map("n", "<leader>hB", function()
+                    gs.toggle_current_line_blame()
+                end, "Toggle Blame")
+
+                -- Diff
+                map("n", "<leader>hd", gs.diffthis, "Diff This")
+            end,
+        },
+    },
+
+    {
+        "sindrets/diffview.nvim",
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+        },
+
+        keys = {
+            { "<leader>gd", "<cmd>DiffviewOpen<CR>", desc = "Open DiffView" },
+            { "<leader>gq", "<cmd>DiffviewClose<CR>", desc = "Close DiffView" },
+            { "<leader>gh", "<cmd>DiffviewFileHistory %<CR>", desc = "File History" },
+            { "<leader>gH", "<cmd>DiffviewFileHistory<CR>", desc = "Repo History" },
+        },
+
+        opts = {
+            enhanced_diff_hl = true,
+
+            view = {
+                default = {
+                    layout = "diff2_horizontal",
+                },
+                merge_tool = {
+                    layout = "diff3_horizontal",
+                },
+            },
+
+            file_panel = {
+                win_config = {
+                    position = "left",
+                    width = 35,
+                },
             },
         },
     },
@@ -355,7 +434,7 @@ require("lazy").setup({
             spec = {
                 { "<leader>s", group = "[S]earch", mode = { "n", "v" } },
                 { "<leader>t", group = "[T]oggle" },
-                { "<leader>h", group = "Git [H]unk", mode = { "n", "v" } }, -- Enable gitsigns recommended keymaps first
+                { "<leader>gh", group = "Git [H]unk", mode = { "n", "v" } }, -- Enable gitsigns recommended keymaps first
                 { "gr", group = "LSP Actions", mode = { "n" } },
             },
         },
@@ -478,7 +557,7 @@ require("lazy").setup({
                     -- Jump to the definition of the word under your cursor.
                     -- This is where a variable was first declared, or where a function is defined, etc.
                     -- To jump back, press <C-t>.
-                    vim.keymap.set("n", "grd", builtin.lsp_definitions, { buffer = buf, desc = "[G]oto [D]efinition" })
+                    vim.keymap.set("n", "gd", builtin.lsp_definitions, { buffer = buf, desc = "[G]oto [D]efinition" })
 
                     -- Fuzzy find all the symbols in your current document.
                     -- Symbols are things like variables, functions, types, etc.
@@ -674,8 +753,6 @@ require("lazy").setup({
                 -- But for many setups, the LSP (`ts_ls`) will work just fine
                 ts_ls = {},
 
-                zls = {},
-
                 eslint = {},
 
                 jsonls = {},
@@ -770,20 +847,20 @@ require("lazy").setup({
         ---@type conform.setupOpts
         opts = {
             notify_on_error = false,
-            format_on_save = function(bufnr)
-                -- Disable "format_on_save lsp_fallback" for languages that don't
-                -- have a well standardized coding style. You can add additional
-                -- languages here or re-enable it for the disabled ones.
-                local disable_filetypes = { c = true, cpp = true }
-                if disable_filetypes[vim.bo[bufnr].filetype] then
-                    return nil
-                else
-                    return {
-                        timeout_ms = 500,
-                        lsp_format = "fallback",
-                    }
-                end
-            end,
+            -- format_on_save = function(bufnr)
+            -- 	-- Disable "format_on_save lsp_fallback" for languages that don't
+            -- 	-- have a well standardized coding style. You can add additional
+            -- 	-- languages here or re-enable it for the disabled ones.
+            -- 	local disable_filetypes = { c = true, cpp = true }
+            -- 	if disable_filetypes[vim.bo[bufnr].filetype] then
+            -- 		return nil
+            -- 	else
+            -- 		return {
+            -- 			timeout_ms = 500,
+            -- 			lsp_format = "fallback",
+            -- 		}
+            -- 	end
+            -- end,
             formatters_by_ft = {
                 lua = { "stylua" },
                 -- Conform can also run multiple formatters sequentially
@@ -890,20 +967,111 @@ require("lazy").setup({
         },
     },
 
+    --[[
+  {
+    "catppuccin/nvim",
+    priority = 1000,
+    opts = {
+        flavour = "mocha", -- latte, frappe, macchiato, mocha
+        transparent_background = true, -- disables setting the background color.
+        float = {
+            transparent = false, -- enable transparent floating windows
+            solid = false, -- use solid styling for floating windows, see |winborder|
+        },
+        term_colors = true, -- sets terminal colors (e.g. `g:terminal_color_0`)
+        dim_inactive = {
+            enabled = false, -- dims the background color of inactive window
+            shade = "dark",
+            percentage = 0.15, -- percentage of the shade to apply to the inactive window
+        },
+        no_italic = false, -- Force no italic
+        no_bold = false, -- Force no bold
+        no_underline = false, -- Force no underline
+        styles = { -- Handles the styles of general hi groups (see `:h highlight-args`):
+            comments = { "italic" }, -- Change the style of comments
+            conditionals = { "italic" },
+            loops = {},
+            functions = {},
+            keywords = {},
+            strings = {},
+            variables = {},
+            numbers = {},
+            booleans = {},
+            properties = {},
+            types = {},
+            operators = {},
+            -- miscs = {}, -- Uncomment to turn off hard-coded styles
+        },
+        lsp_styles = { -- Handles the style of specific lsp hl groups (see `:h lsp-highlight`).
+            virtual_text = {
+                errors = { "italic" },
+                hints = { "italic" },
+                warnings = { "italic" },
+                information = { "italic" },
+                ok = { "italic" },
+            },
+            underlines = {
+                errors = { "underline" },
+                hints = { "underline" },
+                warnings = { "underline" },
+                information = { "underline" },
+                ok = { "underline" },
+            },
+            inlay_hints = {
+                background = true,
+            },
+        },
+        
+        color_overrides = {},
+        custom_highlights = {},
+        auto_integrations = true,
+        integrations = {
+            noice = true,
+            mason = true,
+            which_key = true,
+            treesitter = true,
+            blink_cmp = true,
+            gitsigns = true,
+            notify = false,
+            mini = {
+                enabled = true,
+                indentscope_color = "",
+            },
+            telescope = {
+                enabled = true,
+            },
+            native_lsp = {
+                enabled = true,
+                underlines = {
+                    errors = { "undercurl" },
+                    hints = { "undercurl" },
+                    warnings = { "undercurl" },
+                    information = { "undercurl" },
+                }
+            },
+        }
+            -- For more plugins integrations please scroll down (https://github.com/catppuccin/nvim#integrations)
+    },
+    config = function(_, opts)
+        require("catppuccin").setup(opts)
+        vim.cmd.colorscheme("catppuccin")
+    end,
+  },
+  ]]
     {
         "ellisonleao/gruvbox.nvim",
         priority = 1000,
         config = function()
             -- Default options:
             require("gruvbox").setup({
-                terminal_colors = false, -- add neovim terminal colors
+                terminal_colors = true, -- add neovim terminal colors
                 undercurl = true,
                 underline = true,
-                bold = true,
+                bold = false,
                 italic = {
-                    strings = true,
+                    strings = false,
                     emphasis = true,
-                    comments = true,
+                    comments = false,
                     operators = false,
                     folds = true,
                 },
@@ -914,7 +1082,24 @@ require("lazy").setup({
                 inverse = true, -- invert background for search, diffs, statuslines and errors
                 contrast = "hard", -- can be "hard", "soft" or empty string
                 palette_overrides = {},
-                overrides = {},
+                overrides = {
+                    NormalFloat = {
+                        bg = "#1d2021",
+                    },
+                    FloatBorder = {
+                        bg = "#1d2021",
+                        fg = "#665c54",
+                    },
+                    CursorLine = {
+                        bg = "#0d0d0d",
+                    },
+                    CursorLineNr = {
+                        bg = "#000000",
+                        fg = "#00ff00",
+                    },
+                    OilDir     = { fg = "#00ff00", bold = true }, -- gruvbox blue
+                    OilDirIcon = { fg = "#00ff00" },
+                },
                 dim_inactive = false,
                 transparent_mode = true,
             })

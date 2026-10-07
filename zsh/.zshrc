@@ -63,3 +63,6 @@ export VISUAL="nvim"
 
 # Fastfetch
 fastfetch --pipe false
+
+# LSD replacement for LS
+alias ls='lsd'
